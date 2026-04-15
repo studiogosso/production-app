@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>アニメ制作管理 v1.1</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi44Ki44OL44Oh5Yi25L2c566h55CGIiwic2hvcnRfbmFtZSI6IuWItuS9nOeuoeeQhiIsInN0YXJ0X3VybCI6Ii4vIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGExNiIsInRoZW1lX2NvbG9yIjoiI2UwNTZhMCJ9">
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a16;--bg2:#12122a;--bg3:#1a1a3a;--bg4:#252560;
+  --text:#e8e8f0;--text2:#a0a0b8;--text3:#6a6a82;
+  --accent:#e056a0;--accent2:#f472b6;--accent3:#c04888;
+  --purple:#7c5cfc;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--cyan:#22d3ee;--blue:#60a5fa;--orange:#fb923c;
+  --card-radius:14px;--transition:0.25s ease;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html{font-size:15px;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit;border:none;background:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,textarea,select{font:inherit;border:none;background:none;color:inherit;outline:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+/* Header */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,10,22,0.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(224,86,160,0.2);
+}
+.header-title{
+  font-size:1.15rem;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  white-space:nowrap;
+}
+.header-right{margin-left:auto;display:flex;gap:8px}
+.h-btn{
+  width:36px;height:36px;border-radius:10px;background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;
+  transition:var(--transition);
+}
+.h-btn:active{transform:scale(0.9)}
+.h-btn.active{background:var(--accent);color:#fff}
+
+/* Bottom Nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(10,10,22,0.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid rgba(224,86,160,0.15);
+  display:flex;padding:6px 8px calc(6px + var(--safe-bottom));
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 2px;border-radius:10px;transition:var(--transition);
+  font-size:0.65rem;color:var(--text3);
+}
+.nav-item .nav-icon{font-size:1.25rem;line-height:1}
+.nav-item.active{color:var(--accent)}
+.nav-item:active{transform:scale(0.92)}
+
+/* Main */
+main{padding-bottom:calc(72px + var(--safe-bottom))}
+
+/* Views */
+.view{display:none;animation:fadeIn 0.2s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Project Selector */
+.proj-bar{
+  padding:10px 16px;display:flex;gap:8px;overflow-x:auto;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.proj-bar::-webkit-scrollbar{display:none}
+.proj-chip{
+  flex-shrink:0;padding:7px 16px;border-radius:20px;font-size:0.8rem;font-weight:600;
+  background:var(--bg3);color:var(--text2);transition:var(--transition);
+  border:1px solid transparent;white-space:nowrap;cursor:pointer;
+}
+.proj-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.proj-chip:active{transform:scale(0.95)}
+
+/* ======= KANBAN ======= */
+.kanban-wrap{padding:8px;overflow-x:auto;display:flex;gap:10px;min-height:calc(100vh - 200px)}
+.kanban-col{
+  min-width:240px;max-width:260px;flex-shrink:0;background:var(--bg2);
+  border-radius:var(--card-radius);padding:10px;display:flex;flex-direction:column;
+}
+.kanban-col-header{
+  display:flex;align-items:center;gap:8px;padding:6px 4px 10px;
+  font-size:0.8rem;font-weight:700;color:var(--text2);
+  border-bottom:2px solid var(--bg4);margin-bottom:8px;
+}
+.kanban-col-header .col-count{
+  margin-left:auto;background:var(--bg4);color:var(--text3);
+  padding:2px 8px;border-radius:10px;font-size:0.7rem;
+}
+.kanban-col-header .col-dot{width:8px;height:8px;border-radius:50%}
+.kanban-cards{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:40px}
+.kanban-card{
+  background:var(--bg3);border-radius:10px;padding:10px 12px;
+  cursor:grab;transition:var(--transition);border:1px solid transparent;
+  user-select:none;-webkit-user-select:none;
+}
+.kanban-card:active{cursor:grabbing;transform:scale(0.97)}
+.kanban-card.dragging{opacity:0.5;border-color:var(--accent)}
+.kanban-card .card-title{font-size:0.82rem;font-weight:600;margin-bottom:4px}
+.kanban-card .card-ep{font-size:0.7rem;color:var(--text3);margin-bottom:6px}
+.kanban-card .card-status{
+  display:inline-flex;padding:2px 8px;border-radius:8px;font-size:0.65rem;font-weight:600;
+}
+.status-未着手{background:rgba(107,114,128,0.3);color:#9ca3af}
+.status-進行中{background:rgba(96,165,250,0.2);color:var(--blue)}
+.status-レビュー待ち{background:rgba(251,191,36,0.2);color:var(--yellow)}
+.status-完了{background:rgba(52,211,153,0.2);color:var(--green)}
+.kanban-add{
+  margin-top:8px;padding:8px;border-radius:8px;text-align:center;
+  font-size:0.75rem;color:var(--text3);border:1px dashed var(--bg4);
+  transition:var(--transition);
+}
+.kanban-add:hover{border-color:var(--accent);color:var(--accent)}
+.drop-zone-active{background:rgba(224,86,160,0.08);border:2px dashed var(--accent);border-radius:10px}
+
+/* ======= EPISODES ======= */
+.ep-list{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+.ep-card{background:var(--bg2);border-radius:var(--card-radius);padding:14px 16px}
+.ep-card .ep-name{font-size:0.9rem;font-weight:700;margin-bottom:10px}
+.ep-stages{display:flex;flex-direction:column;gap:6px}
+.ep-stage{display:flex;align-items:center;gap:8px;font-size:0.72rem}
+.ep-stage .stage-label{width:80px;flex-shrink:0;color:var(--text2);text-align:right}
+.ep-stage .stage-bar{flex:1;height:16px;background:var(--bg4);border-radius:8px;overflow:hidden;position:relative}
+.ep-stage .stage-fill{height:100%;border-radius:8px;transition:width 0.4s ease}
+.ep-stage .stage-pct{width:36px;font-size:0.65rem;color:var(--text3);text-align:right}
+
+/* ======= TIMELINE ======= */
+.timeline-wrap{padding:12px 16px}
+.timeline-header{display:flex;justify-content:space-between;margin-bottom:12px}
+.timeline-month{font-size:0.75rem;color:var(--text3);text-align:center;flex:1}
+.tl-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tl-label{width:90px;font-size:0.72rem;color:var(--text2);text-align:right;flex-shrink:0}
+.tl-bars{flex:1;position:relative;height:24px;background:var(--bg2);border-radius:6px;overflow:hidden}
+.tl-bar{position:absolute;height:10px;border-radius:5px;top:3px}
+.tl-bar.planned{background:var(--bg4);top:3px}
+.tl-bar.actual{background:var(--accent);top:12px;opacity:0.85}
+
+/* ======= RESOURCES ======= */
+.res-grid{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.res-card{
+  background:var(--bg2);border-radius:var(--card-radius);padding:14px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.res-avatar{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;font-weight:700;
+}
+.res-name{font-size:0.82rem;font-weight:600}
+.res-role{font-size:0.7rem;color:var(--text3)}
+.res-workload{width:100%}
+.res-workload-bar{width:100%;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px}
+.res-workload-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
+.res-workload-label{display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text3);margin-top:2px}
+.res-status{font-size:0.65rem;padding:2px 8px;border-radius:8px;font-weight:600}
+.avail-対応可能{background:rgba(52,211,153,0.2);color:var(--green)}
+.avail-作業中{background:rgba(96,165,250,0.2);color:var(--blue)}
+.avail-休み{background:rgba(248,113,113,0.2);color:var(--red)}
+
+/* ======= MILESTONES ======= */
+.ms-list{padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.ms-card{
+  background:var(--bg2);border-radius:var(--card-radius);padding:14px 16px;
+  display:flex;align-items:center;gap:12px;border-left:3px solid var(--accent);
+}
+.ms-icon{font-size:1.4rem}
+.ms-info{flex:1}
+.ms-title{font-size:0.85rem;font-weight:600}
+.ms-date{font-size:0.72rem;color:var(--text3);margin-top:2px}
+.ms-countdown{
+  padding:4px 12px;border-radius:10px;font-size:0.75rem;font-weight:700;
+  background:var(--bg3);color:var(--accent);white-space:nowrap;
+}
+.ms-countdown.overdue{color:var(--red);background:rgba(248,113,113,0.15)}
+.ms-countdown.soon{color:var(--yellow);background:rgba(251,191,36,0.15)}
+
+/* ======= NOTES ======= */
+.notes-wrap{padding:12px 16px}
+.note-input{
+  width:100%;padding:12px;background:var(--bg2);border:1px solid var(--bg4);
+  border-radius:12px;resize:vertical;min-height:80px;margin-bottom:8px;
+  font-size:0.85rem;color:var(--text);transition:var(--transition);
+}
+.note-input:focus{border-color:var(--accent)}
+.note-add-btn{
+  padding:8px 20px;border-radius:10px;font-size:0.8rem;font-weight:600;
+  background:var(--accent);color:#fff;transition:var(--transition);margin-bottom:16px;
+}
+.note-add-btn:active{transform:scale(0.95)}
+.note-list{display:flex;flex-direction:column;gap:8px}
+.note-item{background:var(--bg2);border-radius:10px;padding:12px 14px}
+.note-item .note-time{font-size:0.65rem;color:var(--text3);margin-bottom:4px}
+.note-item .note-text{font-size:0.82rem;line-height:1.5;white-space:pre-wrap}
+.note-item .note-del{font-size:0.65rem;color:var(--red);margin-top:6px;opacity:0.6}
+.note-item .note-del:hover{opacity:1}
+
+/* ======= MODAL ======= */
+.modal-overlay{
+  position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);
+  display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-width:480px;
+  padding:20px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:1rem;font-weight:700;margin-bottom:16px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.modal label{display:block;font-size:0.75rem;color:var(--text3);margin-bottom:4px;margin-top:12px}
+.modal input,.modal select,.modal textarea{
+  width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--bg4);
+  border-radius:10px;font-size:0.85rem;margin-top:2px;transition:var(--transition);
+}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--accent)}
+.modal select{-webkit-appearance:none;appearance:none}
+.modal-actions{display:flex;gap:8px;margin-top:20px}
+.modal-actions button{
+  flex:1;padding:12px;border-radius:12px;font-size:0.85rem;font-weight:600;
+  transition:var(--transition);
+}
+.modal-actions .btn-cancel{background:var(--bg4);color:var(--text2)}
+.modal-actions .btn-save{background:var(--accent);color:#fff}
+.modal-actions button:active{transform:scale(0.97)}
+
+/* Summary Stats */
+.stats-row{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
+  gap:8px;padding:12px 16px;
+}
+.stat-box{
+  background:var(--bg2);border-radius:12px;padding:12px;text-align:center;
+}
+.stat-num{font-size:1.4rem;font-weight:800;color:var(--accent)}
+.stat-label{font-size:0.65rem;color:var(--text3);margin-top:2px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">アニメ制作管理 <span style="font-size:.65rem;-webkit-text-fill-color:var(--text3);font-weight:400">v1.1</span></div>
+  <div class="header-right">
+    <button class="h-btn" onclick="exportProdData()" title="エクスポート" style="font-size:.85rem">&#8595;</button>
+    <button class="h-btn" onclick="importProdData()" title="インポート" style="font-size:.85rem">&#8593;</button>
+    <button class="h-btn" onclick="openAddTask()" title="タスク追加">+</button>
+  </div>
+</div>
+
+<div class="proj-bar" id="projBar"></div>
+
+<div class="stats-row" id="statsRow"></div>
+
+<main>
+  <div class="view active" id="viewKanban"></div>
+  <div class="view" id="viewEpisodes"></div>
+  <div class="view" id="viewTimeline"></div>
+  <div class="view" id="viewResources"></div>
+  <div class="view" id="viewMilestones"></div>
+  <div class="view" id="viewNotes"></div>
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" data-view="viewKanban"><span class="nav-icon">&#x1f4cb;</span>ボード</button>
+  <button class="nav-item" data-view="viewEpisodes"><span class="nav-icon">&#x1f4fa;</span>話数</button>
+  <button class="nav-item" data-view="viewTimeline"><span class="nav-icon">&#x1f4c5;</span>進行表</button>
+  <button class="nav-item" data-view="viewResources"><span class="nav-icon">&#x1f465;</span>リソース</button>
+  <button class="nav-item" data-view="viewMilestones"><span class="nav-icon">&#x1f3af;</span>日程</button>
+  <button class="nav-item" data-view="viewNotes"><span class="nav-icon">&#x1f4dd;</span>ノート</button>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============ DATA ============
+const STAGES = ['企画','脚本','コンテ','モデリング','アニメーション','レンダリング','音声','編集','完成'];
+const STAGE_COLORS = ['#e056a0','#7c5cfc','#60a5fa','#22d3ee','#34d399','#fbbf24','#fb923c','#f87171','#a78bfa'];
+const STATUSES = ['未着手','進行中','レビュー待ち','完了'];
+
+function getDefaultData(){
+  return {
+    currentProject: 0,
+    projects: [
+      {
+        id:'p1', name:'星降る夜のメカ', episodes:12, genre:'SFメカ',
+        tasks: genTasks('p1','星降る夜のメカ',12),
+        milestones:[
+          {title:'企画書提出',date:'2026-04-15',icon:'📄'},
+          {title:'第1話脚本締切',date:'2026-05-01',icon:'✏️'},
+          {title:'PV完成',date:'2026-07-15',icon:'🎬'},
+          {title:'放送開始',date:'2026-10-01',icon:'📺'},
+        ],
+        resources:[
+          {name:'佐藤 一郎',role:'監督',avail:'作業中',workload:85,color:'#e056a0'},
+          {name:'田中 美咲',role:'キャラデザ',avail:'作業中',workload:70,color:'#7c5cfc'},
+          {name:'鈴木 太郎',role:'3Dモデラー',avail:'対応可能',workload:40,color:'#22d3ee'},
+          {name:'山田 花子',role:'アニメーター',avail:'対応可能',workload:55,color:'#34d399'},
+          {name:'伊藤 健',role:'音響',avail:'休み',workload:0,color:'#fbbf24'},
+        ],
+        notes:[]
+      },
+      {
+        id:'p2', name:'幻想庭園', episodes:6, genre:'ファンタジー',
+        tasks: genTasks('p2','幻想庭園',6),
+        milestones:[
+          {title:'脚本全話完成',date:'2026-04-20',icon:'✏️'},
+          {title:'モデル一式完成',date:'2026-06-10',icon:'🎨'},
+          {title:'納品',date:'2026-09-30',icon:'📦'},
+        ],
+        resources:[
+          {name:'中村 優',role:'監督/脚本',avail:'作業中',workload:90,color:'#e056a0'},
+          {name:'小林 聡',role:'背景',avail:'作業中',workload:65,color:'#60a5fa'},
+          {name:'加藤 真理',role:'エフェクト',avail:'対応可能',workload:30,color:'#fb923c'},
+        ],
+        notes:[{text:'背景コンセプトのリファレンス収集中。ジブリ風を検討。',time:Date.now()-86400000}]
+      },
+      {
+        id:'p3', name:'DIGITAL GHOST', episodes:8, genre:'サイバーパンク',
+        tasks: genTasks('p3','DIGITAL GHOST',8),
+        milestones:[
+          {title:'キャラ設定完了',date:'2026-05-01',icon:'👤'},
+          {title:'第1話プレビュー',date:'2026-06-30',icon:'🎬'},
+          {title:'全話完成',date:'2026-11-15',icon:'✅'},
+        ],
+        resources:[
+          {name:'高橋 隼',role:'総監督',avail:'作業中',workload:75,color:'#e056a0'},
+          {name:'渡辺 絵里',role:'モデラー',avail:'作業中',workload:80,color:'#22d3ee'},
+          {name:'松本 大輝',role:'リガー',avail:'対応可能',workload:45,color:'#34d399'},
+          {name:'井上 さくら',role:'コンポジッター',avail:'対応可能',workload:20,color:'#a78bfa'},
+        ],
+        notes:[]
+      }
+    ]
+  };
+}
+
+function genTasks(pid, pname, epCount){
+  const tasks = [];
+  const seeds = [
+    [80,90,70,60,40,20,10,0,0],
+    [100,85,65,50,30,10,0,0,0],
+    [100,100,80,70,55,35,20,5,0],
+  ];
+  const pidx = pid==='p1'?0:pid==='p2'?1:2;
+  for(let ep=1;ep<=Math.min(epCount,4);ep++){
+    STAGES.forEach((stage,si)=>{
+      const base = seeds[pidx][si];
+      const epOff = (ep-1)*12;
+      let pct = Math.max(0, base - epOff + Math.floor(Math.random()*10-5));
+      pct = Math.min(100, Math.max(0, pct));
+      let status;
+      if(pct===0) status='未着手';
+      else if(pct>=100) status='完了';
+      else if(pct>70) status='レビュー待ち';
+      else status='進行中';
+      tasks.push({
+        id: `${pid}-ep${ep}-${si}`,
+        title: `第${ep}話 ${stage}`,
+        episode: ep,
+        stage: si,
+        status: status,
+        progress: pct
+      });
+    });
+  }
+  return tasks;
+}
+
+// ============ STATE ============
+let DATA;
+function loadData(){
+  try{
+    const s = localStorage.getItem('anime_prod_tracker');
+    if(s) DATA = JSON.parse(s);
+    else DATA = getDefaultData();
+  }catch(e){ DATA = getDefaultData(); }
+}
+function saveData(){
+  try{ localStorage.setItem('anime_prod_tracker', JSON.stringify(DATA)); }
+  catch(e){ alert('保存に失敗しました（容量不足の可能性）'); }
+}
+function curProj(){ return DATA.projects[DATA.currentProject]; }
+
+loadData();
+
+// ============ NAV ============
+let currentView = 'viewKanban';
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    currentView = btn.dataset.view;
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(currentView).classList.add('active');
+    renderCurrentView();
+  });
+});
+
+// ============ PROJECT BAR ============
+function renderProjBar(){
+  const bar = document.getElementById('projBar');
+  bar.innerHTML = DATA.projects.map((p,i)=>
+    `<button class="proj-chip ${i===DATA.currentProject?'active':''}" onclick="switchProject(${i})">${p.name}</button>`
+  ).join('');
+}
+function switchProject(i){
+  DATA.currentProject = i;
+  saveData();
+  renderProjBar();
+  renderStats();
+  renderCurrentView();
+}
+
+// ============ STATS ============
+function renderStats(){
+  const p = curProj();
+  const total = p.tasks.length;
+  const done = p.tasks.filter(t=>t.status==='完了').length;
+  const inProg = p.tasks.filter(t=>t.status==='進行中').length;
+  const review = p.tasks.filter(t=>t.status==='レビュー待ち').length;
+  const avgProg = total?Math.round(p.tasks.reduce((s,t)=>s+t.progress,0)/total):0;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-label">全タスク</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--green)">${done}</div><div class="stat-label">完了</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--blue)">${inProg}</div><div class="stat-label">進行中</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--yellow)">${review}</div><div class="stat-label">レビュー待ち</div></div>
+    <div class="stat-box"><div class="stat-num">${avgProg}%</div><div class="stat-label">平均進捗</div></div>
+  `;
+}
+
+function renderCurrentView(){
+  switch(currentView){
+    case 'viewKanban': renderKanban(); break;
+    case 'viewEpisodes': renderEpisodes(); break;
+    case 'viewTimeline': renderTimeline(); break;
+    case 'viewResources': renderResources(); break;
+    case 'viewMilestones': renderMilestones(); break;
+    case 'viewNotes': renderNotes(); break;
+  }
+}
+
+// ============ KANBAN ============
+let dragTask = null;
+function renderKanban(){
+  const p = curProj();
+  const el = document.getElementById('viewKanban');
+  el.innerHTML = `<div class="kanban-wrap">${STAGES.map((stage,si)=>{
+    const tasks = p.tasks.filter(t=>t.stage===si);
+    return `<div class="kanban-col" data-stage="${si}"
+      ondragover="onDragOver(event)" ondrop="onDrop(event,${si})" ondragleave="onDragLeave(event)">
+      <div class="kanban-col-header">
+        <span class="col-dot" style="background:${STAGE_COLORS[si]}"></span>
+        ${stage}
+        <span class="col-count">${tasks.length}</span>
+      </div>
+      <div class="kanban-cards" data-stage="${si}">
+        ${tasks.map(t=>`
+          <div class="kanban-card" draggable="true" data-id="${t.id}"
+            ondragstart="onDragStart(event,'${t.id}')" ondragend="onDragEnd(event)"
+            onclick="openEditTask('${t.id}')">
+            <div class="card-title">${t.title}</div>
+            <div class="card-ep">第${t.episode}話</div>
+            <div class="card-status status-${t.status}">${t.status}</div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="kanban-add" onclick="openAddTask(${si})">+ タスク追加</button>
+    </div>`;
+  }).join('')}</div>`;
+
+  // Touch drag support
+  el.querySelectorAll('.kanban-card').forEach(card=>{
+    card.addEventListener('touchstart', onTouchStart, {passive:false});
+    card.addEventListener('touchmove', onTouchMove, {passive:false});
+    card.addEventListener('touchend', onTouchEnd, {passive:false});
+  });
+}
+
+function onDragStart(e, id){
+  dragTask = id;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(()=>e.target.classList.add('dragging'),0);
+}
+function onDragEnd(e){ e.target.classList.remove('dragging'); dragTask=null; }
+function onDragOver(e){
+  e.preventDefault();
+  e.currentTarget.querySelector('.kanban-cards').classList.add('drop-zone-active');
+}
+function onDragLeave(e){
+  e.currentTarget.querySelector('.kanban-cards').classList.remove('drop-zone-active');
+}
+function onDrop(e, stageIdx){
+  e.preventDefault();
+  e.currentTarget.querySelector('.kanban-cards').classList.remove('drop-zone-active');
+  if(!dragTask) return;
+  const p = curProj();
+  const task = p.tasks.find(t=>t.id===dragTask);
+  if(task){
+    task.stage = stageIdx;
+    task.title = `第${task.episode}話 ${STAGES[stageIdx]}`;
+    saveData();
+    renderKanban();
+    renderStats();
+  }
+  dragTask=null;
+}
+
+// Touch drag
+let touchClone=null, touchId=null, touchStartX, touchStartY, touchMoved=false;
+function onTouchStart(e){
+  const card = e.currentTarget;
+  touchId = card.dataset.id;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
+}
+function onTouchMove(e){
+  if(!touchId) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if(Math.abs(dx)>10 || Math.abs(dy)>10) touchMoved=true;
+  if(!touchMoved) return;
+  e.preventDefault();
+  if(!touchClone){
+    touchClone = e.currentTarget.cloneNode(true);
+    touchClone.style.cssText='position:fixed;z-index:999;pointer-events:none;opacity:0.8;width:240px;transform:rotate(2deg)';
+    document.body.appendChild(touchClone);
+    e.currentTarget.classList.add('dragging');
+  }
+  touchClone.style.left = (e.touches[0].clientX-120)+'px';
+  touchClone.style.top = (e.touches[0].clientY-30)+'px';
+}
+function onTouchEnd(e){
+  if(!touchId) return;
+  if(touchClone){
+    document.body.removeChild(touchClone);
+    touchClone=null;
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if(el){
+      const col = el.closest('.kanban-col');
+      if(col){
+        const stageIdx = parseInt(col.dataset.stage);
+        const p = curProj();
+        const task = p.tasks.find(t=>t.id===touchId);
+        if(task){
+          task.stage = stageIdx;
+          task.title = `第${task.episode}話 ${STAGES[stageIdx]}`;
+          saveData();
+        }
+      }
+    }
+    renderKanban();
+    renderStats();
+  } else if(!touchMoved) {
+    openEditTask(touchId);
+  }
+  touchId=null;
+  touchMoved=false;
+}
+
+// ============ EPISODES ============
+function renderEpisodes(){
+  const p = curProj();
+  const epNums = [...new Set(p.tasks.map(t=>t.episode))].sort((a,b)=>a-b);
+  document.getElementById('viewEpisodes').innerHTML = `<div class="ep-list">${epNums.map(ep=>{
+    const epTasks = p.tasks.filter(t=>t.episode===ep);
+    return `<div class="ep-card">
+      <div class="ep-name">第${ep}話</div>
+      <div class="ep-stages">${STAGES.map((stage,si)=>{
+        const t = epTasks.find(t=>t.stage===si);
+        const pct = t?t.progress:0;
+        const col = STAGE_COLORS[si];
+        return `<div class="ep-stage">
+          <span class="stage-label">${stage}</span>
+          <div class="stage-bar"><div class="stage-fill" style="width:${pct}%;background:${col}"></div></div>
+          <span class="stage-pct">${pct}%</span>
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ============ TIMELINE ============
+function renderTimeline(){
+  const p = curProj();
+  const el = document.getElementById('viewTimeline');
+  const months = ['4月','5月','6月','7月','8月','9月','10月','11月'];
+  const epNums = [...new Set(p.tasks.map(t=>t.episode))].sort((a,b)=>a-b);
+
+  el.innerHTML = `<div class="timeline-wrap">
+    <div class="timeline-header">${months.map(m=>`<div class="timeline-month">${m}</div>`).join('')}</div>
+    ${epNums.map(ep=>{
+      const epTasks = p.tasks.filter(t=>t.episode===ep);
+      const avgProg = Math.round(epTasks.reduce((s,t)=>s+t.progress,0)/epTasks.length);
+      const pStart = Math.max(0, (ep-1)*10);
+      const pWidth = 30;
+      const aWidth = Math.round(pWidth * avgProg/100);
+      return `<div class="tl-row">
+        <div class="tl-label">第${ep}話 (${avgProg}%)</div>
+        <div class="tl-bars">
+          <div class="tl-bar planned" style="left:${pStart}%;width:${pWidth}%"></div>
+          <div class="tl-bar actual" style="left:${pStart}%;width:${aWidth}%"></div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="display:flex;gap:16px;margin-top:12px;font-size:0.7rem;color:var(--text3)">
+      <span><span style="display:inline-block;width:12px;height:6px;background:var(--bg4);border-radius:3px;margin-right:4px"></span>予定</span>
+      <span><span style="display:inline-block;width:12px;height:6px;background:var(--accent);border-radius:3px;margin-right:4px"></span>実績</span>
+    </div>
+  </div>`;
+}
+
+// ============ RESOURCES ============
+function renderResources(){
+  const p = curProj();
+  document.getElementById('viewResources').innerHTML = `<div class="res-grid">${p.resources.map(r=>{
+    const wColor = r.workload>80?'var(--red)':r.workload>50?'var(--yellow)':'var(--green)';
+    return `<div class="res-card">
+      <div class="res-avatar" style="background:${r.color}30;color:${r.color}">${r.name.charAt(0)}</div>
+      <div class="res-name">${r.name}</div>
+      <div class="res-role">${r.role}</div>
+      <div class="res-status avail-${r.avail}">${r.avail}</div>
+      <div class="res-workload">
+        <div class="res-workload-bar"><div class="res-workload-fill" style="width:${r.workload}%;background:${wColor}"></div></div>
+        <div class="res-workload-label"><span>稼働率</span><span>${r.workload}%</span></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ============ MILESTONES ============
+function renderMilestones(){
+  const p = curProj();
+  const now = new Date();
+  document.getElementById('viewMilestones').innerHTML = `<div class="ms-list">${p.milestones.map(m=>{
+    const d = new Date(m.date);
+    const diff = Math.ceil((d-now)/(1000*60*60*24));
+    let cls='', label='';
+    if(diff<0){ cls='overdue'; label=`${Math.abs(diff)}日超過`; }
+    else if(diff<=7){ cls='soon'; label=`残り${diff}日`; }
+    else { label=`残り${diff}日`; }
+    return `<div class="ms-card">
+      <div class="ms-icon">${m.icon}</div>
+      <div class="ms-info">
+        <div class="ms-title">${m.title}</div>
+        <div class="ms-date">${m.date}</div>
+      </div>
+      <div class="ms-countdown ${cls}">${label}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ============ NOTES ============
+function renderNotes(){
+  const p = curProj();
+  document.getElementById('viewNotes').innerHTML = `<div class="notes-wrap">
+    <textarea class="note-input" id="noteInput" placeholder="制作メモを入力..."></textarea>
+    <button class="note-add-btn" onclick="addNote()">メモ追加</button>
+    <div class="note-list">${(p.notes||[]).sort((a,b)=>b.time-a.time).map((n,i)=>`
+      <div class="note-item">
+        <div class="note-time">${new Date(n.time).toLocaleString('ja-JP')}</div>
+        <div class="note-text">${escHtml(n.text)}</div>
+        <button class="note-del" onclick="deleteNote(${i})">削除</button>
+      </div>
+    `).join('')}</div>
+  </div>`;
+}
+function addNote(){
+  const inp = document.getElementById('noteInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  const p = curProj();
+  if(!p.notes) p.notes=[];
+  p.notes.push({text, time:Date.now()});
+  saveData();
+  renderNotes();
+}
+function deleteNote(idx){
+  if(!confirm('このメモを削除しますか？'))return;
+  const p = curProj();
+  const sorted = [...(p.notes||[])].sort((a,b)=>b.time-a.time);
+  const target = sorted[idx];
+  if(!target) return;
+  const origIdx = p.notes.indexOf(target);
+  if(origIdx >= 0) p.notes.splice(origIdx, 1);
+  saveData();
+  renderNotes();
+}
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============ MODALS ============
+function openModal(html){
+  document.getElementById('modalContent').innerHTML=html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function openAddTask(stageIdx){
+  const p = curProj();
+  const epNums = [...new Set(p.tasks.map(t=>t.episode))].sort((a,b)=>a-b);
+  const maxEp = epNums.length?Math.max(...epNums):0;
+  const si = stageIdx!==undefined?stageIdx:0;
+  openModal(`
+    <h3>タスク追加</h3>
+    <label>話数</label>
+    <select id="mEp">${epNums.map(e=>`<option value="${e}">第${e}話</option>`).join('')}
+      <option value="${maxEp+1}">第${maxEp+1}話 (新規)</option>
+    </select>
+    <label>ステージ</label>
+    <select id="mStage">${STAGES.map((s,i)=>`<option value="${i}" ${i===si?'selected':''}>${s}</option>`).join('')}</select>
+    <label>ステータス</label>
+    <select id="mStatus">${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select>
+    <label>進捗 (%)</label>
+    <input type="number" id="mProg" min="0" max="100" value="0">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveNewTask()">追加</button>
+    </div>
+  `);
+}
+
+function saveNewTask(){
+  const p = curProj();
+  const ep = parseInt(document.getElementById('mEp').value);
+  const stage = parseInt(document.getElementById('mStage').value);
+  const status = document.getElementById('mStatus').value;
+  const progress = parseInt(document.getElementById('mProg').value)||0;
+  const existing = p.tasks.find(t=>t.episode===ep && t.stage===stage);
+  if(existing){
+    existing.status=status;
+    existing.progress=Math.min(100,Math.max(0,progress));
+  } else {
+    p.tasks.push({
+      id: `${p.id}-ep${ep}-${stage}-${Date.now()}`,
+      title: `第${ep}話 ${STAGES[stage]}`,
+      episode: ep,
+      stage: stage,
+      status: status,
+      progress: Math.min(100,Math.max(0,progress))
+    });
+  }
+  saveData();
+  closeModal();
+  renderStats();
+  renderCurrentView();
+}
+
+function openEditTask(id){
+  const p = curProj();
+  const t = p.tasks.find(t=>t.id===id);
+  if(!t) return;
+  openModal(`
+    <h3>タスク編集</h3>
+    <label>タイトル</label>
+    <input id="mTitle" value="${escHtml(t.title)}">
+    <label>ステータス</label>
+    <select id="mStatus">${STATUSES.map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select>
+    <label>進捗 (%)</label>
+    <input type="number" id="mProg" min="0" max="100" value="${t.progress}">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="deleteTask('${id}')" style="color:var(--red)">削除</button>
+      <button class="btn-save" onclick="saveEditTask('${id}')">保存</button>
+    </div>
+  `);
+}
+
+function saveEditTask(id){
+  const p = curProj();
+  const t = p.tasks.find(t=>t.id===id);
+  if(!t) return;
+  t.title = document.getElementById('mTitle').value;
+  t.status = document.getElementById('mStatus').value;
+  t.progress = Math.min(100,Math.max(0,parseInt(document.getElementById('mProg').value)||0));
+  if(t.status==='完了') t.progress=100;
+  saveData();
+  closeModal();
+  renderStats();
+  renderCurrentView();
+}
+
+function deleteTask(id){
+  if(!confirm('このタスクを削除しますか？'))return;
+  const p = curProj();
+  p.tasks = p.tasks.filter(t=>t.id!==id);
+  saveData();
+  closeModal();
+  renderStats();
+  renderCurrentView();
+}
+
+// ============ EXPORT/IMPORT ============
+function exportProdData(){
+  const json=JSON.stringify(DATA,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='anime_prod_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();URL.revokeObjectURL(url);
+}
+function importProdData(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=function(){
+    const reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        const imported=JSON.parse(e.target.result);
+        if(imported.projects){
+          if(!confirm('現在のデータを上書きしますか？'))return;
+          DATA=imported;saveData();
+          renderProjBar();renderStats();renderCurrentView();
+          alert('インポート完了');
+        }else{alert('無効なデータ形式です');}
+      }catch(err){alert('JSONの解析に失敗しました');}
+    };
+    reader.readAsText(input.files[0]);
+  };
+  input.click();
+}
+
+// ============ PWA ============
+if('serviceWorker' in navigator){
+  const swCode='self.addEventListener("fetch",e=>e.respondWith(fetch(e.request).catch(()=>new Response("Offline",{status:503}))))';
+  const blob=new Blob([swCode],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+
+// ============ INIT ============
+renderProjBar();
+renderStats();
+renderKanban();
+</script>
+</body>
+</html>
